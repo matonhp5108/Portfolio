@@ -76,6 +76,8 @@ const portfolioData = {
 
 portfolioData.timeline = [...portfolioData.projects].sort((a, b) => a.date - b.date);
 
+const PROJECT_HEALTH_POLL_MS = 180000;
+
 
 async function renderClock() {
   const timeElement = document.getElementById('time');
@@ -108,7 +110,10 @@ async function renderPortfolio() {
         <div class="timeline-detail-type">${project.name}</div>
         <div class="timeline-detail-desc">${project.description}</div>
         <div class="timeline-detail-domain">${project.domain}</div>
-        <div class="timeline-detail-language">${project.stack}</div>
+        <div class="timeline-detail-meta">
+          <div class="timeline-detail-language">${project.stack}</div>
+          ${getProjectStatusMarkup(project)}
+        </div>
       </div>
     </div>
   `).join('');
@@ -196,6 +201,7 @@ async function renderPortfolio() {
     {
       class: 'module-timeline-preview',
       title: 'Projects',
+      subtitle: 'also shows project status',
       content: `
         <div class="timeline-preview-container">
           <div class="timeline-horizontal-line">
@@ -210,7 +216,10 @@ async function renderPortfolio() {
   modulesContainer.innerHTML = modules.map(module => `
     <div class="portfolio-module ${module.class}">
       ${module.title ? `<div class="module-header">
-        <h3 class="module-title">${module.title}</h3>
+        <div class="module-heading">
+          <h3 class="module-title">${module.title}</h3>
+          ${module.subtitle ? `<p class="module-subtitle">${module.subtitle}</p>` : ''}
+        </div>
       </div>` : ''}
       <div class="module-content">
         ${module.content}
@@ -219,6 +228,69 @@ async function renderPortfolio() {
   `).join('');
 
   setupBorderSpotlight();
+}
+
+function getProjectStatusMeta(project) {
+  const status = project.health?.status;
+  if (status === 'up') {
+    return { icon: 'fa-check-circle', label: 'Up', className: 'is-up' };
+  }
+  if (status === 'degraded') {
+    return { icon: 'fa-clock', label: 'Slow', className: 'is-degraded' };
+  }
+  if (status === 'down') {
+    return { icon: 'fa-times-circle', label: 'Down', className: 'is-down' };
+  }
+
+  return { icon: 'fa-clock', label: 'Checking', className: 'is-checking' };
+}
+
+function getProjectStatusMarkup(project) {
+  const meta = getProjectStatusMeta(project);
+  return `
+    <div class="timeline-detail-status ${meta.className}" data-project-status="${project.url}">
+      <i class="fas ${meta.icon}" aria-hidden="true"></i>
+      <span>${meta.label}</span>
+    </div>
+  `;
+}
+
+function updateProjectStatusInDom() {
+  portfolioData.timeline.forEach(project => {
+    const statusElement = document.querySelector(`[data-project-status="${CSS.escape(project.url)}"]`);
+    if (!statusElement) return;
+
+    const meta = getProjectStatusMeta(project);
+    statusElement.className = `timeline-detail-status ${meta.className}`;
+    statusElement.innerHTML = `
+      <i class="fas ${meta.icon}" aria-hidden="true"></i>
+      <span>${meta.label}</span>
+    `;
+  });
+}
+
+async function refreshProjectHealth() {
+  try {
+    const response = await fetch('/api/project-health');
+    if (!response.ok) {
+      throw new Error(`Project health request failed with ${response.status}`);
+    }
+
+    const payload = await response.json();
+    const healthByUrl = new Map((payload.projects || []).map(project => [project.url, project]));
+
+    portfolioData.timeline.forEach(project => {
+      project.health = healthByUrl.get(project.url) || null;
+    });
+
+    updateProjectStatusInDom();
+  } catch (error) {
+    console.error('Project health fetch error:', error);
+    portfolioData.timeline.forEach(project => {
+      project.health = { status: 'degraded' };
+    });
+    updateProjectStatusInDom();
+  }
 }
 
 function setupBorderSpotlight() {
@@ -379,4 +451,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderPortfolio();
   renderClock();
   renderSpotify();
+  refreshProjectHealth();
+  setInterval(refreshProjectHealth, PROJECT_HEALTH_POLL_MS);
 });

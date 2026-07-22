@@ -429,6 +429,13 @@ html, body {
   flex-shrink: 0;
 }
 
+.module-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
 .module-title {
   position: relative;
   font-size: 16px;
@@ -437,6 +444,13 @@ html, body {
   margin: 0;
   letter-spacing: 0.3px;
   border-bottom: 2px dotted var(--accent-medium);
+}
+
+.module-subtitle {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
 }
 
 
@@ -1141,10 +1155,43 @@ html, body {
   margin-bottom: 4px;
 }
 
+.timeline-detail-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .timeline-detail-language {
   font-size: 10px;
   color: var(--text-dim);
   font-style: italic;
+}
+
+.timeline-detail-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.timeline-detail-status.is-checking {
+  color: #d8e2f0;
+}
+
+.timeline-detail-status.is-up {
+  color: #b8ffd0;
+}
+
+.timeline-detail-status.is-degraded {
+  color: #ffe2a8;
+}
+
+.timeline-detail-status.is-down {
+  color: #ffb3b3;
 }
 
 .module-title,
@@ -1187,6 +1234,11 @@ html, body {
     padding: 105px 0;
     min-height: 320px;
     height: auto;
+  }
+@media (max-width: 770px) {
+  .timeline-detail-meta {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
